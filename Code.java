@@ -160,35 +160,24 @@ public class Code
         //TODO return true if a loop is encountered while parsing the word w
         // This method assumes that A is deterministic.
         int q = 0;
-        String seen = "";
+        ArrayList<Integer> visited = new ArrayList<Integer>();
+        visited.add(q);
         for (int i = 0; i < w.length; i++) {
             for (Transition t : A.delta) {
                 if (t.from == q && t.label.equals(w.get(i))) {
+                    // if the next state in the transition has been visited, 
+                    // that means we're in a loop so return true
+                    if (visited.contains(t.to)) {
+                        return true;
+                    }
                     // make next start state the final state we just transitioned to
                     q = t.to;
-                    // add states we have seen to a String
-                    seen += t.from;
-
-                    if (i == w.length - 1) {
-                        seen += t.to;
-                    }
+                    // add states we have visited
+                    visited.add(q);
                     break;
                 }
             }            
         }
-
-        String unique = "";
-        
-        for (int i = 0; i < seen.length(); i++) {
-            if (unique.indexOf(seen.charAt(i)) == -1) {
-                unique += seen.charAt(i);
-            }
-        }
-
-        if (seen.length() > unique.length()) {
-            return true;
-        }
-
         return false;
     }
 
@@ -198,67 +187,51 @@ public class Code
         // This method assumes that A is deterministic.
         // You can return the result of the function "badResult()" if there is no pump
         // to ensure test cases are accurate.
-        int q = 0; // initial state
+        int q = 0;
         String res = "";
         ArrayList<Integer> visited = new ArrayList<Integer>();
-        visited.add(0); // adds first state as we always start from q0
-        ArrayList<String> label = new ArrayList<String>();
-        System.out.println("Word: " + w + " j: "+ j + " --------------------");
-        if (!A.isAccepted(w) || !detectLoop(A, w)) {
-            System.out.println("Word is not accepted!");
-            return badResult();
-        }
-        else {
-            for (int i = 0; i < w.length; i++) {
-                for (Transition t : A.delta) {
-                    if (t.from == q && t.label.equals(w.get(i))) {
-                        System.out.println(t); // this prints the states visited
-                        // checks if a state we are going to has already been visited, which means there is a loop
-                        if (visited.contains(t.to)) {
-                            System.out.println("Loop!!");
-                            String pumpedString = "";
-                            // pump the jam
-                            int p_index = visited.indexOf(t.to);
-                            visited.add(t.to);
-                            label.add(t.label);
-                            
-                            // add transition labels up until the beginning of the loop
-                            for (int k = 0; k < p_index; k++) {
-                                res += label.get(k);
-                            }
-
-                            // pumps string between start and end of loop
-                            while (j > 0) {
-                                for (int p = p_index; p < visited.size() - 1; p++) {
-                                    pumpedString += label.get(p);
-                                }
-                                j--;
-                            }
-                            res += pumpedString;
-                            System.out.println(visited);
-                            System.out.println(label);
-                            System.out.println(pumpedString);
-                        }
-                        else {
-                            visited.add(t.to);
-                            label.add(t.label);
-                        }
-                        
-                        // make next state is the final state we just transitioned to
-                        q = t.to;
-                        // add from state to states visited    
-                        break;
+        visited.add(q);
+        for (int i = 0; i < w.length; i++) {
+            for (Transition t : A.delta) {
+                if (t.from == q && t.label.equals(w.get(i))) {
+                    // if the next state in the transition has been visited, 
+                    // that means we're in a loop so return true
+                    if (visited.contains(t.to)) {
+                        int loop_beginning = visited.indexOf(t.to);
+                        res = pumpHelper(loop_beginning, i, w, j);
+                        return new Word(res);
                     }
-                }            
-            }
+                    // make next start state the final state we just transitioned to
+                    q = t.to;
+                    // add states we have visited
+                    visited.add(q);
+                    break;
+                }
+            }            
         }
+        return badResult();
+    }
+
+    public static String pumpHelper(int loop_beginning, int loop_end, Word w, int j) {
+        String res = "";
         
-        System.out.println(visited);
-        System.out.println(label);
+        // add letters up until loop beginning
+        for (int i = 0; i < loop_beginning; i++) {
+            res += w.get(i);
+        }   
+        
+        // pump letters
+        for (int l = 0; l < j; l++) {
+            for (int i = loop_beginning; i <= loop_end; i++) {
+                res += w.get(i);
+            } 
+        }
 
-        System.out.println("Res: "+res);
-
-        return new Word(res);
+        // add letters after the loop
+        for (int i = loop_end + 1; i < w.length; i++) {
+            res += w.get(i);
+        }
+        return res;
     }
 
 
